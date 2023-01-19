@@ -11,6 +11,12 @@ contract BuyMeACoffee {
         uint256 timestamp
     );
 
+    //Event to emit when the withdrwal (owner) address is changed
+    event WithdrawalAddressChanged (
+        address oldWithdrawalAdress,
+        address newWithdrawalAddress
+    );
+
     // Memo struct
     struct Memo {
         address senderAddress;
@@ -21,7 +27,8 @@ contract BuyMeACoffee {
     
     //address of the contract deployer. Marked payable so that
     // we can withdraw to this address later.
-    address payable owner;
+    address owner;
+    address payable withdrawalAddress;
 
     // List of all memos received from coffee purchase.
     Memo[] memos;
@@ -29,7 +36,15 @@ contract BuyMeACoffee {
     constructor () {
         // Store the address of the deployer as a payable address.
         // When we withdraw funds, we'll withdraw here.
-        owner = payable(msg.sender);
+        owner = msg.sender;
+        withdrawalAddress = payable(owner);
+    }
+
+    /**
+    * @param _newWithdrawalAddress is the new address for owner/withdrawal account.
+     */
+    function setWithdrawalAddress(address _newWithdrawalAddress) private {
+        owner = payable(_newWithdrawalAddress);
     }
 
     /**
@@ -62,10 +77,18 @@ contract BuyMeACoffee {
             block.timestamp
         );
 
-    }
+    }  
+
+
     
     function withdrawTips() public{
         // (bool sent, bytes memory data) = owner.call{value: msg.value}("");
-        require(owner.send(address(this).balance));
+        require(withdrawalAddress.send(address(this).balance));
+    }
+
+    function updateWithdrawalAddress(address newWithdrawalWalletAddress, address changeRequestingWalletAddress) public {
+        require(owner == changeRequestingWalletAddress, "Only current Owner can request Address Change");
+        setWithdrawalAddress(newWithdrawalWalletAddress);
+        emit WithdrawalAddressChanged(changeRequestingWalletAddress, newWithdrawalWalletAddress);
     }
 }
